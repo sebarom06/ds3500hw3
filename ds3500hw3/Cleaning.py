@@ -6,8 +6,8 @@ dpd = "perceived_focus_score"
 noise_type = "background_noise_type"
 file_path = "background_noise_focus_dataset.csv"
 #Todo write column names you want to use for barchart
-categorical = ""
-numerical = ""
+categorical = "role"
+numerical = "focus_duration_minutes"
 
 class DfCleaner:
     def __init__(self, filename):
@@ -46,14 +46,14 @@ class DfCleaner:
 
         return df
 
-    def get_subset_bar(self, role = "role"):
+    def get_subset_bar(self, x_group = "role"):
         """
         getting subset for the barchart
         """
         df = self.df.copy()
 
-        if role != "All Roles":
-            df = df[df["role"] == role]
+        df = df.groupby([x_group, "background_noise_type"])["focus_duration_minutes"].mean().reset_index()
+        df.columns = ["x_category", "noise_type", "focus_duration_minutes"]
 
         # Todo: make subset for whatever other widget you do
 
@@ -68,21 +68,21 @@ class DfCleaner:
         result = df[[x, y, color]]
         return result
 
-    def bar_points(self, x = categorical, y = numerical, role = "role"):
+    def bar_points(self, x = categorical, y = numerical, x_group = "role"):
         """
         creates bar plot dataframe with the subset of chosen role
         """
         # Todo: how do you feel about using button group to choose the y data (numerical)
         # Todo: so they can choose between perceived focus, task completion, etc
-        df = self.get_subset(role)
-        result = df[[x, y]]
+        df = self.get_subset_bar(x_group)
 
-        return result
+        return df
 
 def main():
     datadf = DfCleaner(file_path)
     datadf.clean_data()
     print(datadf.points_plot(role = ""))
+
 
 if __name__ == "__main__":
     main()
