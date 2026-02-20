@@ -9,7 +9,7 @@ file_path = "background_noise_focus_dataset.csv"
 categorical = "role"
 numerical = "focus_duration_minutes"
 
-class dfCleaner:
+class DfCleaner:
     def __init__(self, filename):
         """
         loads data into the dataframe
@@ -79,7 +79,7 @@ class dfCleaner:
         return df
 
 def main():
-    datadf = dfCleaner(file_path)
+    datadf = DfCleaner(file_path)
     datadf.clean_data()
     print(datadf.points_plot(role = ""))
 
