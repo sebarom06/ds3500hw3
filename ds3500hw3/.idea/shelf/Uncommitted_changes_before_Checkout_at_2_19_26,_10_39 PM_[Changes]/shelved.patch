@@ -1,0 +1,1106 @@
+Index: Cleaning.py
+===================================================================
+diff --git a/Cleaning.py b/Cleaning.py
+--- a/Cleaning.py	(revision b6eb8f20a0a677055ae034600b792f76d70ec84b)
++++ b/Cleaning.py	(date 1771557424137)
+@@ -1,0 +1,36 @@
++import pandas as pd
++
++critical_col = ["role", "task_type", "background_noise_type"]
++ind = "focus_duration_minutes"
++dpd = "perceived_focus_score"
++noise_type = "background_noise_type"
++file_path = "background_noise_focus_dataset.csv"
++
++class dfCleaner:
++    def __init__(self, filename):
++        """
++        loads data into the dataframe
++        path to filename
++        """
++        self.df = pd.read_csv(filename)
++
++    def clean_data(self, critical = critical_col):
++        """
++        dropping Nan if its in critical columns
++        """
++        self.df = self.df.dropna(subset = critical)
++
++    def points_plot(self, x = ind, y = dpd, color = noise_type):
++        """
++        creating dataframe suitable for plot
++        """
++        result = self.df[[x, y, color]]
++        return result
++
++def main():
++    dataf = dfCleaner(file_path)
++    dataf.clean_data()
++    print(dataf.df)
++
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
+Index: ../code/05_binning_practice_test.py
+===================================================================
+diff --git a/../code/05_binning_practice_test.py b/../code/05_binning_practice_test.py
+--- a/../code/05_binning_practice_test.py	(revision b6eb8f20a0a677055ae034600b792f76d70ec84b)
++++ b/../code/05_binning_practice_test.py	(date 1769575052221)
+@@ -1,0 +1,217 @@
++"""
++Demonstrates: Binning, duplicates, merging, validation
++Rush's Notebook
++"""
++
++import pandas as pd
++import numpy as np
++import matplotlib.pyplot as plt
++
++# =============================================================================
++# SECTION 1: CREATING NEW COLUMNS WITH BINNING
++# =============================================================================
++
++def demo_binning(df):
++    """
++    Create bins for avg cost -- custom boundaries AND quantile-based bins
++    """
++    df_binned = df.copy()
++
++    # custom binning
++    df_binned["avg_cost"] = pd.cut(df["avg_cost"],
++           bins = [3000, 10000, 30000, 60000, 90000],
++           labels = ["low", "affordable", "pricey", "expensive"])
++    print(df_binned["avg_cost"].value_counts())
++
++    # quantile binning
++    df_binned["avg_cost_binned_qt"] = pd.qcut(df["avg_cost"], 4,
++                                              labels = ["T1", "T2", "T3", "T4"])
++    print(df_binned["avg_cost_binned_qt"].value_counts())
++
++
++
++
++# =============================================================================
++# SECTION 2: JOINING & MERGING DATAFRAMES
++# =============================================================================
++
++def random_sample(df, n):
++    """Utility function-- return a sample of random data points
++    from the data frame"""
++    return df.sample(n=n)
++
++
++def demo_concat_vertical(df):
++    """
++    Demonstrate pd.concat() for vertical stacking
++
++    """
++    df1 = random_sample(df, n = 30)
++    df2 = random_sample(df, n = 30)
++
++    combined = pd.concat([df1, df2], axis = 1)
++    print(combined.shape)
++
++def demo_concat_pattern(df):
++    """
++    Useful pattern for looping through pages of data, collecting the dataframes
++    together.
++    """
++    df_lst = []
++    for x in range(20):
++        df_lst.append(random_sample(df, n = 50))
++
++    return pd.concat(df_lst, ignore_index = True)
++
++def demo_merge_basics(df):
++    """
++    Demonstrate merging-- outer, inner, left, right
++    """
++    states = pd.DataFrame({
++        "state": ["MA", "CA", "NY", "TX"],
++        "income": [67000, 80000, 88000, 54000],
++        "population": [2000000, 60000000, 12000000, 45000000]
++    })
++
++    # outer
++    outer = pd.merge(states, df, how = "outer", on = "state")
++    print(f"outer: {outer.shape}")
++
++    # inner
++    inner = pd.merge(states, df, how = "inner", on = "state")
++    print(f"inner: {inner.shape}")
++
++    # left
++    left = pd.merge(states, df, how = "left", on = "state")
++    print(f"left: {left.shape}")
++
++    right = pd.merge(states, df, how = "right", on = "state")
++    print(f"right: {right.shape}")
++
++
++
++
++# =============================================================================
++# SECTION 3: DUPLICATE DETECTION & HANDLING
++# =============================================================================
++
++def demo_duplicates(df):
++    """
++    Detect and remove duplicates
++    """
++    df_drop = df.copy()
++    df_drop = df_drop.drop_duplicates(subset = ["name"])
++    print(len(df) - len(df_drop))
++
++# =============================================================================
++# SECTION 4: DATA VALIDATION
++# =============================================================================
++def validate_college_data(df):
++    """
++    Assertion-based validation - stops if something wrong
++    Assert:
++    1. Required columns exist
++    2. No missing in critical columns
++    3. Value ranges correct (admission_rate in [0,1], enrollment > 0)
++    4. No duplicates
++    5. Data types correct
++
++    Raises AssertionError if any check fails
++    """
++    # make sure critical columns are not nan
++    assert df[["name", "state"]].notna().all().all(), "columns empty"
++
++    # check if adm rates in range
++    assert (df["admission_rate"] > 0).all(), "admin rates not in range"
++
++    # check if enrollment above 0
++    assert (df["enrollment"] > 0).all(), "enrollment not in range"
++
++# =============================================================================
++# STUDENT EXERCISES
++# =============================================================================
++
++def exercise_1_binning(df):
++    """
++    Task: Create 'size_category' column using pd.cut()
++
++    Use enrollment column with bins:
++    - Small: 0-5000
++    - Medium: 5000-15000
++    - Large: 15000+
++
++    Return: Series with size categories
++    """
++    # TODO: Your code here
++    df["size_category"] = pd.cut(df["enrollment"],
++                                 bins = [0, 5000, 15000, 500000],
++                                 labels = ["small", "medium", "large"])
++
++    return df["size_category"].value_counts()
++
++
++def exercise_2_quantiles(df):
++    """
++    Task: Create 'earnings_tier' using pd.qcut()
++
++    Split median_earnings_10yr into 4 equal groups (quartiles)
++    Labels: ['Low', 'Medium', 'High', 'Very High']
++
++    Return: Series with earnings tiers
++    """
++    # TODO: Your code here
++    df["earnings_tier"] = pd.qcut(df["median_earnings_10yr"], 4,
++                                  labels = ["low", "medium", "high", "very high"])
++
++    return df["earnings_tier"].value_counts()
++
++
++def exercise_3_merge(df):
++    """
++    Task: Merge college data with region data
++
++    Create a DataFrame with state-to-region mapping:
++    - MA, NY, CT → Northeast
++    - CA, OR, WA → West
++    - TX, FL → South
++
++    Merge with df using left join on 'state'
++
++    Return: Merged DataFrame with new 'region' column
++    """
++    # TODO: Your code here
++    df_region = pd.DataFrame({
++        "state": ["MA", "NY", "CT", "CA","OR", "WA", "TX", "FL"],
++        "region": ["Northeast", "Northeast", "Northeast", "West", "West", "West", "South", "South"]
++        }
++    )
++
++    df_merged = pd.merge(df_region, df, how = "left", on = "state")
++    return df_merged.head()
++
++# =============================================================================
++# MAIN
++# =============================================================================
++if __name__ == '__main__':
++    # Load data
++    df = pd.read_csv('data/college-scorecard.csv')
++
++    #print(random_sample(df, n=100))
++
++    # Binning
++    # demo_binning(df)
++
++    # Merging
++    #demo_concat_vertical(df)
++    print(demo_concat_pattern(df))
++    demo_merge_basics(df)
++
++    # Duplicates
++    demo_duplicates(demo_concat_pattern(df))
++
++    # Validation
++    #validate_college_data(df)
++
++    #print(exercise_1_binning(df))
++    #print(exercise_2_quantiles(df))
++    print(exercise_3_merge(df))
+Index: ../code/06_api_testpractice.py
+===================================================================
+diff --git a/../code/06_api_testpractice.py b/../code/06_api_testpractice.py
+--- a/../code/06_api_testpractice.py	(revision b6eb8f20a0a677055ae034600b792f76d70ec84b)
++++ b/../code/06_api_testpractice.py	(date 1769578380989)
+@@ -1,0 +1,182 @@
++"""
++REST APIs & Basic Requests
++Rush's Notebook
++
++Topics:
++- JSON structure and parsing
++- Making GET requests with the requests library
++- Extracting data from API responses
++"""
++
++import requests
++import json
++import pandas as pd
++import matplotlib.pyplot as plt
++
++# THIS IS RUSH's API KEY.
++# YOU WILL BE RATE-LIMITED PAST A CERTAIN POINT
++# IF YOU'D LIKE TO PRACTICE, USE YOUR OWN API KEY
++API_KEY = "96681b9ba7abb77834eb76e7e45c7e75fdd0f5a81a8bb6d90b0dab8c4d1bee9c"
++
++# ============================================================================
++# JSON REVIEW
++# ============================================================================
++
++def explore_json_structure(json_data):
++    """
++    Review JSON structure and navigation
++    """
++    # Parse the JSON string
++    data = json_data
++
++    print("Data type:", type(data))
++    print("Top-level keys:", data.keys())
++    print("\nFirst result:")
++    print(json.dumps(data['results'][0], indent=2))
++
++    # Extract specific values
++    # first_value = data['results'][0]['value']
++    # all_values = [result['value'] for result in data['results']]
++
++# ============================================================================
++# FIRST API CALL
++# ============================================================================
++
++def simple_api_request():
++    """
++    Make a simple API locations request to Open AQ.
++    Returns the JSON data.
++    """
++    endpoint = "https://api.openaq.org/v3/countries/155"
++    header = {"X-Api-Key": API_KEY}
++    response = requests.request("GET", endpoint, headers = header)
++    return response.json()
++
++
++
++def api_request_with_parameters():
++    """
++    Make API request with query parameters. Use the Open AQ
++    API to get locations near us.
++    Returns: the JSON data.
++    """
++    endpoint = "https://api.openaq.org/v3/locations"
++    header = {"X-Api-Key": API_KEY}
++    parameters = {
++        "coordinates": "42.3611,-71.0570",
++        "radius": 1000
++    }
++
++    response = requests.request("GET", endpoint, headers = header, params = parameters)
++    return response.json()
++
++
++
++
++def convert_to_dataframe(data):
++    """
++    Convert API response to pandas DataFrame
++    Args:
++        data (dict): JSON response from OpenAQ API
++
++    Returns:
++        pd.DataFrame: DataFrame with measurement data
++    """
++    # TODO: Extract relevant fields
++    records = []
++    for measurement in data['results']:
++        records.append({
++        "location": measurement['name'],
++        "country": measurement["country"]["name"],
++        "sensor name": measurement["sensors"]["parameter"]["name"]
++        })
++
++    df = pd.DataFrame(records)
++    return df
++
++# ============================================================================
++# PRACTICE EXERCISES (10 min)
++# ============================================================================
++
++def exercise_1():
++    """
++    Exercise 1: Get air quality data for a city
++    - What's the average PM2.5 value?
++    - create a visualization for the PM2.5 values
++    """
++    endpoint = "https://api.openaq.org/v3/sensors/688/measurements/daily"
++    header = {"X-Api-Key": API_KEY}
++    parameters = {
++        "limit": 1000
++    }
++    response = requests.request("GET", endpoint, headers = header, params = parameters)
++    data = response.json()
++
++    records = []
++    for measurement in data["results"]:
++        records.append({
++            "DateTime": measurement["period"]["datetimeFrom"]["utc"],
++            "PM2.5": measurement["value"]
++        })
++    df = pd.DataFrame(records)
++
++    plt.plot(df["DateTime"], df["PM2.5"])
++    plt.xlabel("DateTime")
++    plt.ylabel("PM2.5")
++    plt.show()
++
++
++
++
++def exercise_2():
++    """
++    Exercise 2: Try a different parameter
++    - Look at the OpenAQ docs for other parameter IDs
++    - Try ozone (o3) or PM10
++    """
++    pass
++
++
++def exercise_3():
++    """
++    Exercise 3: Extract specific fields
++    - Create a list of all location names
++    - Hint: Use list comprehensions!
++    """
++    pass
++
++
++# ============================================================================
++# MAIN EXECUTION
++# ============================================================================
++
++def main():
++    """
++    Main function to run all demonstrations
++    """
++    # JSON Review
++    #explore_json_structure()
++
++    # Simple request
++    #json_data = simple_api_request()
++    #explore_json_structure(json_data)
++
++    # Request with parameters
++    #data = api_request_with_parameters()
++    #explore_json_structure(data)
++
++    # Extract and analyze
++    #df = convert_to_dataframe(data)
++    #print(df)
++
++
++    # Exercises
++    exercise_1()
++    # exercise_2()
++    # exercise_3()
++
++
++
++if __name__ == "__main__":
++    main()
++
+Index: ../code/hw2/pipeline.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>def fetch_gdif_data(species_list, year):\n    \"\"\"\n    retrieves observations from GBIF API\n    returns DataFrame with at min species name, coordinates, date, state,\n    and coordinate uncertainty\n    \"\"\"\n    pass\n\ndef clean_biodiversity_data(raw_df):\n    \"\"\"\n    removes invalid/missing data\n    removes duplicates and invalid data\n    extracts month from dates\n    returns cleaned DataFrame and\n    a metrics dictionary quantifying what was removed\n    :param raw_df:\n    :return:\n    \"\"\"\n    pass\n\ndef enrich_with_state_data(cleaned_df, state_ref_df):\n    \"\"\"\n    joins observations with state reference data\n    \"\"\"\n    pass\n\ndef calculate_analysis(enriched_df):\n    \"\"\"\n    performs analysis\n    obervations per state with density\n    species distribution across months as a plot \n    :param enriched_df:\n    :return:\n    \"\"\"\n\ndef main():\n    \"\"\"\n    Main function to run all demonstrations\n    \"\"\"\n\nif __name__ == \"__main__\":\n    main()\n
+===================================================================
+diff --git a/../code/hw2/pipeline.py b/../code/hw2/pipeline.py
+--- a/../code/hw2/pipeline.py	(revision b6eb8f20a0a677055ae034600b792f76d70ec84b)
++++ b/../code/hw2/pipeline.py	(date 1769819804036)
+@@ -1,10 +1,51 @@
++import requests
++import pandas as pd
++import seaborn as sns
++import matplotlib.pyplot as plt
++
+ def fetch_gdif_data(species_list, year):
+     """
+     retrieves observations from GBIF API
+     returns DataFrame with at min species name, coordinates, date, state,
+     and coordinate uncertainty
+     """
+-    pass
++    records = []
++    # make parameters the species list with the Ids and the year
++    endpoint = "https://api.gbif.org/v1/occurrence/search"
++
++    for species in species_list:
++        for month in range(1, 13):
++            parameters = {
++                "taxonKey": species,
++                "year": year,
++                "month": month,
++                "hasCoordinate": True,
++                "decimalLatitude": "38.8, 47.5",
++                "decimalLongitude": "-77.5,-66.5",
++                "limit": 50
++            }
++
++            response = requests.request("GET", endpoint,
++                                params = parameters)
++            # turn it into json data
++            data = response.json()
++
++            # make json into a dataframe
++            for measurements in data["results"]:
++                records.append({
++                    "species_name": measurements.get("scientificName"),
++                    "species_id": measurements.get("taxonKey"),
++                    "latitude": measurements.get("decimalLatitude"),
++                    "longitude": measurements.get("decimalLongitude"),
++                    "date": measurements.get("eventDate"),
++                    "state": measurements.get("stateProvince"),
++                    "coordinate_uncertainty": measurements.get("coordinateUncertaintyInMeters")
++                })
++
++    df = pd.DataFrame(records)
++    return df
++
++
+ 
+ def clean_biodiversity_data(raw_df):
+     """
+@@ -13,30 +54,144 @@
+     extracts month from dates
+     returns cleaned DataFrame and
+     a metrics dictionary quantifying what was removed
+-    :param raw_df:
+-    :return:
+     """
+-    pass
++    df_cleaned = raw_df.copy()
++    initial_size = len(df_cleaned)
++
++    # removing missing data and duplicates
++    df_cleaned = df_cleaned.dropna()
++    dropped_na_size = initial_size - len(df_cleaned)
++    before = len(df_cleaned)
++    df_cleaned = df_cleaned.drop_duplicates()
++    dropped_duplicated_size = before - len(df_cleaned)
++
++    # making sure latitude and longitude are within the ranges
++    before = len(df_cleaned)
++    df_cleaned = df_cleaned[
++        (df_cleaned["latitude"] >= -90) & (df_cleaned["latitude"] <= 90) &
++        (df_cleaned["longitude"] >= -180) & (df_cleaned["longitude"] <= 180)
++    ]
++    dropped_coordinate_size = before - len(df_cleaned)
++
++    # extract months from dates
++    before = len(df_cleaned)
++    df_cleaned["date"] = pd.to_datetime(df_cleaned["date"], format = "ISO8601")
++    df_cleaned["month"] = df_cleaned["date"].dt.month
++    dropped_invalid_datetime = before - len(df_cleaned)
++
++    # make species name standardized
++    df_cleaned["species_name"] = df_cleaned["species_name"].str.split().str[:2].str.join(" ")
++
++    final_metrics = len(df_cleaned)
++
++    metrics = {
++        "initial metrics": initial_size,
++        "final metrics": final_metrics,
++        "dropped missing data": dropped_na_size,
++        "dropped duplicated data": dropped_duplicated_size,
++        "dropped invalid coordinates": dropped_coordinate_size,
++        "dropped invalid datetime": dropped_invalid_datetime,
++        "retention": final_metrics / initial_size,
++    }
++
++    return df_cleaned, metrics
++
++
+ 
+ def enrich_with_state_data(cleaned_df, state_ref_df):
+     """
+     joins observations with state reference data
+     """
+-    pass
++    # using print(cleaned_df["state"].unique())
++    # found that there was a state called Maryland (MD)
++    # changed so no (MD)
++    cleaned_df["state"] = cleaned_df["state"].str.split("(").str[0].str.strip()
++
++    # using print(cleaned_df["state"].value_counts()
++    # found Canadian States like Quebec and Montreal
++    # used an inner join in order to not include Quebec and Montreal
++    # only US states
++    enriched_df = pd.merge(cleaned_df,
++             state_ref_df,
++             left_on = "state",
++             right_on = "state_name",
++             how = "inner"
++            )
++    return enriched_df
+ 
+ def calculate_analysis(enriched_df):
+     """
+     performs analysis
+-    obervations per state with density
+-    species distribution across months as a plot 
+-    :param enriched_df:
+-    :return:
++    observations per state with density
++    species distribution across months as a plot
+     """
++    # finding state observations and the areas of the states
++    state_obs = enriched_df["state"].value_counts()
++    state_areas = enriched_df.groupby("state")["area_sq_km"].first()
++    analysis_df = pd.DataFrame({
++        "total_observations": state_obs,
++        "area_sq_km": state_areas,
++    })
++
++    # calculates density per 1000 sq km
++    analysis_df["density"]  = (
++        analysis_df["total_observations"] / analysis_df["area_sq_km"]
++    ) * 1000
++
++    # sort it in order so you can see the higher densities first
++    analysis_df = analysis_df.sort_values("density", ascending = False)
++
++    sns.set_theme(style="whitegrid")
++
++    month_species = enriched_df.groupby(["month", "species_name"]).size().reset_index(name = "count")
++
++    sns.catplot(
++        data= month_species,
++        kind= "bar",
++        x= "month",
++        y= "count",
++        hue = "species_name",
++        palette = "dark",
++        alpha = 0.5,
++        height = 6,
++    )
++
++    plt.xlabel("Month")
++    plt.ylabel("Number of Observations")
++    plt.title("Species Distribution across Months")
++    plt.xticks(range(12), ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
++                           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
++    plt.show()
++
++    return analysis_df
++
+ 
+ def main():
+     """
+     Main function to run all demonstrations
+     """
++    # Step 1: Fetch data from GBIF API
++    species_list = [9809229, 2484609, 2490384]
++    df = fetch_gdif_data(species_list, 2023)
++
++    # Step 2: Clean the data
++    cleaned_df, metrics = clean_biodiversity_data(df)
++
++    # Step 3: Enrich with state data
++    state_df = pd.read_csv("state_reference.csv")
++    enriched_df = enrich_with_state_data(cleaned_df, state_df)
++
++    # Step 4: Perform analysis
++    analysis_df = calculate_analysis(enriched_df)
++
++
+ 
+ if __name__ == "__main__":
+     main()
++
++
++
++
++
++
++
+Index: ../code/titanic.py
+===================================================================
+diff --git a/../code/titanic.py b/../code/titanic.py
+--- a/../code/titanic.py	(revision b6eb8f20a0a677055ae034600b792f76d70ec84b)
++++ b/../code/titanic.py	(date 1768610196418)
+@@ -1,0 +1,15 @@
++import pandas as pd
++import numpy as np
++import matplotlib.pyplot as plt
++import seaborn as sns
++
++
++titanic = sns.load_dataset('titanic')
++
++titanic["survived"].value_counts().plot.bar()
++
++plt.xlabel("surived")
++plt.ylabel("count")
++plt.xticks([0, 1], ["No", "Yes"])
++
++plt.show()
+Index: ../code/api_proj.py
+===================================================================
+diff --git a/../code/api_proj.py b/../code/api_proj.py
+--- a/../code/api_proj.py	(revision b6eb8f20a0a677055ae034600b792f76d70ec84b)
++++ b/../code/api_proj.py	(date 1769985035125)
+@@ -1,0 +1,13 @@
++import pandas as pd
++from sklearn.linear_model import LinearRegression
++from sklearn.metrics import mean_squared_error, r2_score
++from sklearn.model_selection import train_test_split
++import matplotlib.pyplot as plt
++import numpy as np
++
++# Read CSV files from data folder
++aqi_df = pd.read_csv('data/annual_aqi_by_county_2019.csv')
++print(aqi_df.head(10))
++
++ca_asthma = pd.read_csv('data/california_asthma_prevalence.csv', encoding='latin-1')
++print(ca_asthma.head(10))
+\ No newline at end of file
+Index: ../code/03_pandas_testpractice.py
+===================================================================
+diff --git a/../code/03_pandas_testpractice.py b/../code/03_pandas_testpractice.py
+--- a/../code/03_pandas_testpractice.py	(revision b6eb8f20a0a677055ae034600b792f76d70ec84b)
++++ b/../code/03_pandas_testpractice.py	(date 1769551008703)
+@@ -1,0 +1,195 @@
++"""
++DS3500 - Lecture 3 Pandas Fundamentals
++Demonstrates: DataFrames, loading data, selection, filtering, plotting
++Rush's Notebook.
++TODO: DO NOT CHANGE CODE IN PUBLIC REPO. COPY TO YOUR REPO!
++command: cp <source> <destination>
++documentation for command: https://www.gnu.org/software/coreutils/manual/html_node/cp-invocation.html
++TODO: Change name in this docstring on line 4 to your name.
++"""
++
++import pandas as pd
++import matplotlib.pyplot as plt
++
++PATH_TO_DATA = 'data/college-scorecard.csv'
++
++
++# =============================================================================
++# DEMO 1: Creating  and Loading DataFrames
++# =============================================================================
++
++def demo_create_dataframe():
++    """Return a DataFrame created from scratch. This is simply a demo function
++    to demonstrate how dataframes can be created from scratch. Useful for
++    testing by creating a mock dataframe with only a couple of rows."""
++    df = pd.DataFrame(
++        {"name": ["caitlin", "seba"],
++         "major": ["ds + bns", "ds + econ"]}
++    )
++
++    return df
++
++
++
++def demo_load_data(csv_path):
++    """Load the data from given path into a dataframe and return the dataframe.
++    Folks, this is one line of code-- generally you won't create a function
++    for something like this."""
++    return pd.read_csv(csv_path)
++
++
++# =============================================================================
++# DEMO 2: Exploring Dataframes
++# =============================================================================
++
++def summarize_dataframe(df, opt=""):
++    """Utility function for quick summaries. You can do a variety of the following:
++     shape, head, tail, sampling, columns, info, describe, dtypes. THIS IS SUPER
++     HELPFUL! I suggest keeping this function in your pocket, handy for whenever you
++     are working with a dataset. """
++    if "shape" in opt:
++        return df.shape
++    elif "describe" in opt:
++        return df.describe()
++    elif "info" in opt:
++        return df.info()
++    elif "sample" in opt:
++        return df.sample(n = 5)
++
++
++
++# =============================================================================
++# DEMO 3: Column Selection and Operations
++# =============================================================================
++
++def demo_column_selection(df):
++    """Different ways to select columns: single column, multiple columns,
++    column operations, operator lifting."""
++    # selecting rows 0 - 10
++    return df.iloc[0:10]
++    # df["name"]
++
++
++
++# =============================================================================
++# DEMO 4: Row Filtering
++# =============================================================================
++
++def demo_filtering(df):
++    """Boolean indexing and filtering.
++    IMPORTANT: Must use & (and), | (or), ~ (not) - NOT Python's and, or, not
++    IMPORTANT: Must use parentheses around each condition!"""
++    school = df[(df["state"] == "CA") & (df["avg_cost"] < 30000)]
++    return school
++
++
++
++def find_schools(df, state, max_admission_rate):
++    """Filter by state and below a certain
++    admission rate."""
++    filtered_schools = df[(df["state"] == state) & (df["admission_rate"] < max_admission_rate)]
++    return filtered_schools["admission_rate"]
++
++
++# =============================================================================
++# DEMO 5: Quick Plotting
++# =============================================================================
++
++def demo_plotting(df, opt = ""):
++    """Built-in pandas plotting for quick exploration. Class, pick one:
++    - histogram for admission rate to understand (distribution)
++    - scatter plot for admission rate vs median earnings (binary relationship)
++    - bar chart for counts by state (top X states)
++    """
++    if "histogram" in opt:
++        df["admission_rate"].plot.hist()
++        plt.xlabel("Admission Rates")
++        plt.ylabel("Frequency")
++        plt.show()
++
++    elif "scatter" in opt:
++        df.plot.scatter(x = "admission_rate", y = "median_earnings_10yr")
++        plt.xlabel("admission rates")
++        plt.ylabel("median earnings")
++        plt.show()
++
++    elif "bar" in opt:
++        top_10 = df["state"].value_counts().sort_values(ascending = False).head(10)
++        top_10.plot.bar()
++        plt.xlabel("state")
++        plt.ylabel("count")
++        plt.show()
++
++
++
++
++
++
++
++# =============================================================================
++# STUDENT EXERCISES
++# =============================================================================
++
++def exercise_1(df):
++    """Get schools in California"""
++    ca = df[df["state"] == "CA"]
++    return ca
++
++
++def exercise_2(df):
++    """Find large schools"""
++    large = df[df["enrollment"] > 25000]
++    return large
++
++
++def exercise_3(df):
++    """Find affordable MA schools"""
++    affordable_MA = df[(df["state"] == "MA") & (df["avg_cost"] < 15000)]
++    return affordable_MA
++
++
++def exercise_4_viz(df):
++    """Plot enrollment vs cost"""
++    df.plot.scatter(x = "enrollment", y = "avg_cost")
++    plt.xlabel("enrollment")
++    plt.ylabel("average cost")
++    plt.show()
++
++def exercise_5_challenge(df):
++    """Filter NY schools and plot"""
++    Ny = df[df["state"] == "NY"]
++    Ny.plot.scatter(x = "enrollment", y = "avg_cost")
++    plt.xlabel("enrollment")
++    plt.ylabel("average cost")
++    plt.show()
++
++
++# =============================================================================
++# MAIN
++# =============================================================================
++
++if __name__ == '__main__':
++    # Load data -- this is how you generally load data (commented for this lecture)
++    # df = pd.read_csv(PATH_TO_DATA)
++
++    print("=" * 60)
++    print("LECTURE 3: PANDAS FUNDAMENTALS")
++    print("=" * 60)
++
++    # Run demos (uncomment to run each)
++    demo_create_dataframe()
++    df = demo_load_data(PATH_TO_DATA)
++    # print(df)
++    summarize_dataframe(df, "describe")
++    demo_column_selection(df)
++    demo_filtering(df)
++    #print(demo_plotting(df, "bar"))
++    #(find_schools(df, "NY", 0.6))
++
++    # Student exercises
++    #print(exercise_1(df))
++    #print(exercise_2(df))
++    #print(exercise_3(df))
++    print(exercise_4_viz(df))
++    print(exercise_5_challenge(df))
++    # ...
+\ No newline at end of file
+Index: ../code/04_cleaning_test_practice.py
+===================================================================
+diff --git a/../code/04_cleaning_test_practice.py b/../code/04_cleaning_test_practice.py
+--- a/../code/04_cleaning_test_practice.py	(revision b6eb8f20a0a677055ae034600b792f76d70ec84b)
++++ b/../code/04_cleaning_test_practice.py	(date 1769554496271)
+@@ -1,0 +1,189 @@
++"""
++Data Cleaning Fundamentals
++Imputation and Outlier Detection
++Rush's Notebook
++"""
++
++import pandas as pd
++import numpy as np
++import matplotlib.pyplot as plt
++
++PATH_TO_FILE = "data/college-scorecard.csv"
++
++# =============================================================================
++# DEMO 1: Missing Data Detection
++# =============================================================================
++def demo_missing_detection(df):
++    """
++    Detect missing data through summaries and visualizations.
++    """
++    print(df.isna().sum())
++    print(df.describe())
++    print("shape is ", df.shape)
++
++# =============================================================================
++# DEMO 2: Missing Data Strategies
++# =============================================================================
++
++def demo_drop_strategies(df):
++    """
++    Demonstrate dropping strategies for missing data
++    """
++    df_dropped = df.copy()
++
++    df_dropped = df.dropna(subset = ["name", "enrollment"])
++    print(df_dropped.shape)
++
++
++def demo_fill_strategies(df):
++    """
++    Demonstrate filling strategies for missing data. Remember folks, you can
++    do imputation with constants, statistical measures, forward/backward fills,
++    or group-based values.
++    """
++    df_dropped = df.copy()
++    # sat avg use state avg
++    avg_cost = df.groupby("state")["avg_cost"].mean()
++    df_dropped["avg_cost"] = df["avg_cost"].fillna(avg_cost)
++
++    print(df_dropped["avg_cost"].describe())
++
++
++# =============================================================================
++# DEMO 3: Identifying Unusual Values
++# =============================================================================
++
++def identify_unusual_schools(df, column):
++    """
++    Identify statistically unusual schools using IQR method (there is also a
++    standard deviation approach, called the z-score method).
++
++    Args:
++        df: College DataFrame
++        column: Column to analyze
++
++    Returns:
++        DataFrame of unusual schools
++    """
++    df[column].plot.box()
++    plt.show()
++
++    q1 = df[column].quantile(0.25)
++    q3 = df[column].quantile(0.75)
++    iqr = q3 - q1
++
++    upper = q3 + 1.5 * iqr
++    lower = q1 - 1.5 * iqr
++
++    df_unusual = df[(df[column] > upper) | (df[column] < lower)]
++    return df_unusual
++
++
++
++# =============================================================================
++# DEMO 4: Analysis Decisions with Unusual Cases
++# =============================================================================
++
++def analyze_all_schools(df):
++    """
++    Analysis including all schools (including most selective)
++    """
++
++
++def analyze_accessible_schools(df, max_selectivity=0.30):
++    """
++    Analysis excluding most selective schools
++    Focus on colleges accessible to typical students
++
++    Args:
++        df: College DataFrame
++        max_selectivity: Maximum selectivity threshold
++    """
++
++
++# =============================================================================
++# STUDENT EXERCISES
++# =============================================================================
++
++def exercise_1_utility(df):
++    """Create a reusable missing data summary function. This can be really useful
++    as a utility function! Have it be something where you can use this function
++    for a quick glimpse as well as a detailed breakdown on the missing data in
++    a dataset."""
++    is_na = df.isna().sum()
++    print(f"number of cells that are na are {is_na}")
++
++    percent = (is_na / len(df)) * 100
++    print(f"percentage of cells that are na are {percent}")
++
++
++def exercise_2_identify_unusual(df):
++    """Identify outlier school based on other variables."""
++    q1 = df["avg_cost"].quantile(0.25)
++    q3 = df["avg_cost"].quantile(0.75)
++    iqr = q3 - q1
++
++    upper = q3 + 1.5 * iqr
++    lower = q1 - 1.5 * iqr
++
++    outlier = df[(df["avg_cost"] > upper) | (df["avg_cost"] < lower)]
++
++    return outlier
++
++
++
++def exercise_3_analysis_decision(df):
++    """Compare analyses with and without selective schools. Produce a plot
++    where both correlations are visible."""
++    selective = identify_unusual_schools(df, "admission_rate")
++    q1 = df["admission_rate"].quantile(0.25)
++    q3 = df["admission_rate"].quantile(0.75)
++    iqr = q3 - q1
++
++    upper = q3 + 1.5 * iqr
++    lower = q1 - 1.5 * iqr
++
++    non_selective = df[(df["admission_rate"] < upper) & (df["admission_rate"] > lower)]
++
++    plt.scatter(selective["admission_rate"], selective["avg_cost"], label="selective", color="blue")
++    plt.scatter(non_selective["admission_rate"], non_selective["avg_cost"], label="non selective", color="red")
++    plt.xlabel("Admission Rate")
++    plt.xlabel("admission rate")
++    plt.ylabel("average cost")
++    plt.legend()
++    plt.show()
++
++
++
++
++
++# =============================================================================
++# MAIN
++# =============================================================================
++
++if __name__ == '__main__':
++    # Load data
++    df = pd.read_csv(PATH_TO_FILE)
++
++    print("="*60)
++    print("DATA CLEANING FUNDAMENTALS")
++    print("="*60)
++    print()
++
++    # DEMO 1: Missing Data
++    #demo_missing_detection(df)
++    #df_dropped = demo_drop_strategies(df)
++
++    #df_filled = demo_fill_strategies(df)
++
++    # DEMO 2: Unusual Values
++    #selective = identify_unusual_schools(df, 'admission_rate')
++
++    # DEMO 3: Analysis Decisions
++    #analyze_all_schools(df)
++    # analyze_accessible_schools(df, max_selectivity=0.30)
++
++    #print(exercise_1_utility(df))
++    #print(exercise_2_identify_unusual(df))
++    print(exercise_3_analysis_decision(df))
++
