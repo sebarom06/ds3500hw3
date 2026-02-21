@@ -1,5 +1,6 @@
 import panel as pn
 import Box_plot as sc
+import bar_plot as bp
 import Cleaning as c
 
 
@@ -23,11 +24,25 @@ def get_box(role, y_axis):
                           title = "Comparing Focus Score with Background Noise Types ")
     return fig
 
-def get_bar_dataset():
-    pass
+def get_bar_dataset(x_group):
+    """"
+    returns df used in bar plot
+    """
+    global api
+    df = api.bar_points(x_group=x_group)
+    return pn.pane.DataFrame(df)
 
-def get_bar():
-    pass
+
+
+def get_bar(x_group):
+    """
+    returns bar plot
+    """
+    global api
+    bar_df = api.bar_points(x_group=x_group)
+    fig = bp.make_bar_plot(bar_df, x="x_category", y="focus_duration_minutes",
+                           color="noise_type", title="Avg Study Time by " + x_group.replace("_", " ").title())
+    return fig
 
 def main():
     pn.extension()
@@ -50,12 +65,18 @@ def main():
                                           ]
                                       })
 
-    # Todo: seba, add the creation of ur bar widgets here
+    x_group_select = pn.widgets.RadioButtonGroup(
+        name="View By",
+        options=["role", "task_type"],
+        value="role"
+    )
 
     # connecting widgets to functions
     box_dataset = pn.bind(get_box_dataset, role_select)
     box_plot = pn.bind(get_box, role_select, y_axis_select)
-    # Todo: connect your widgets to the datasetyou want the widget to use
+    bar_dataset = pn.bind(get_bar_dataset, x_group_select)
+    bar_plot = pn.bind(get_bar, x_group_select)
+
     # it's in the syntax of (dataset, whatevery widgets need to use that dataset)
 
     # dashboard
@@ -66,24 +87,32 @@ def main():
         ),
         title = "Search", collapsed = False
     )
-    # Todo: make a seperate dashboard car for bar
+    bar_search = pn.Card(
+        pn.Column(x_group_select),
+        title="Bar Search", collapsed=False
+    )
+
 
     # layout
     layout = pn.template.FastListTemplate(
         title = "Background Noise and Focus",
         sidebar = [
-            box_search
+            box_search,
+            bar_search,
         ],
         theme_toggle = False,
         main = [
-            pn.Tabs(# Todo: make a seperate object (tab) for bar plot dataset and plot
+            pn.Tabs(
                 ("Box Plot Dataset", box_dataset),
                 ("Box Plot", box_plot),
-                active = 1
+                ("Bar Plot Dataset", bar_dataset),
+                ("Bar Plot", bar_plot),
+                active=1
             )
         ],
         header_background = "blue"
     )
+
 
     layout.show()
 
