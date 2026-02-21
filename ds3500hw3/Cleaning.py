@@ -37,9 +37,9 @@ class DfCleaner:
         return ["All Roles"] + roles
 
 
-    def get_subset_scatter(self, role = "role"):
+    def get_subset_box(self, role = "role"):
         """
-        getting subset for scatter plot
+        getting subset for box plot
         drop down menu of roles
         noise volume level slider
         """
@@ -67,7 +67,7 @@ class DfCleaner:
         """
         creating dataframe suitable for plot
         """
-        df = self.get_subset_scatter(role)
+        df = self.get_subset_box(role)
 
         result = df[[x, y]].copy()
         return result

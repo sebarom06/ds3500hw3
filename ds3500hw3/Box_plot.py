@@ -7,9 +7,9 @@ def no_underscore(text):
     makes underscores into spaces and makes lowercase into uppercase
     """
     return text.replace("_", " ").title()
-def make_scatter(df, color_map, x, y, color, title = ""):
+def make_box(df, color_map, x, y, color, title = ""):
     """
-    makes the scatter plot with different colors to different types
+    makes the box plot with different colors to different types
     """
     fig = px.box(
         df,
