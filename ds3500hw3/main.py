@@ -1,25 +1,25 @@
 import panel as pn
-import Scatter_Plot as sc
+import Box_plot as sc
 import Cleaning as c
 
 
 api = c.DfCleaner(c.file_path)
 
-def get_scatter_dataset(role):
+def get_box_dataset(role):
     """
-    returns df used in scatter plot
+    returns df used in box plot
     """
     global api
-    df = api.get_subset_scatter(role)
+    df = api.get_subset_box(role)
     return pn.pane.DataFrame(df)
 
-def get_scatter(role, y_axis):
+def get_box(role, y_axis):
     """
-    returns the scatter plot
+    returns the box plot
     """
     global api
-    scatter_df = api.points_plot(x = c.noise_type, y = y_axis, color = c.noise_type, role = role)
-    fig = sc.make_scatter(scatter_df, color_map = c.color_map, x = c.noise_type, y = y_axis, color = c.noise_type,
+    box_df = api.points_plot(x = c.noise_type, y = y_axis, color = c.noise_type, role = role)
+    fig = sc.make_box(box_df, color_map = c.color_map, x = c.noise_type, y = y_axis, color = c.noise_type,
                           title = "Comparing Focus Score with Background Noise Types ")
     return fig
 
@@ -36,27 +36,30 @@ def main():
     api.clean_data()
 
     # widgets
-    # scatter dropdown menu widget
+    # box dropdown menu widget
     role_select = pn.widgets.Select(name = "Roles", options = api.get_role())
 
-    # scatter noise volume level slider
+    # box y axis select
     y_axis_select = pn.widgets.Select(name = "Y Axis",
-                                     options = [
-                                         "perceived_focus_score",
-                                         "task_completion_quality",
-                                         "mental_fatigue_after_task"
-                                     ])
+                                      options={
+                                          sc.no_underscore(col): col
+                                          for col in [
+                                              "perceived_focus_score",
+                                              "task_completion_quality",
+                                              "mental_fatigue_after_task"
+                                          ]
+                                      })
 
     # Todo: seba, add the creation of ur bar widgets here
 
     # connecting widgets to functions
-    scatter_dataset = pn.bind(get_scatter_dataset, role_select)
-    scatter_plot = pn.bind(get_scatter, role_select, y_axis_select)
+    box_dataset = pn.bind(get_box_dataset, role_select)
+    box_plot = pn.bind(get_box, role_select, y_axis_select)
     # Todo: connect your widgets to the datasetyou want the widget to use
     # it's in the syntax of (dataset, whatevery widgets need to use that dataset)
 
     # dashboard
-    scatter_search = pn.Card(
+    box_search = pn.Card(
         pn.Column(
             role_select,
             y_axis_select,
@@ -69,13 +72,13 @@ def main():
     layout = pn.template.FastListTemplate(
         title = "Background Noise and Focus",
         sidebar = [
-            scatter_search
+            box_search
         ],
         theme_toggle = False,
         main = [
             pn.Tabs(# Todo: make a seperate object (tab) for bar plot dataset and plot
-                ("Scatter Plot Dataset", scatter_dataset),
-                ("Scatter Plot", scatter_plot),
+                ("Box Plot Dataset", box_dataset),
+                ("Box Plot", box_plot),
                 active = 1
             )
         ],
