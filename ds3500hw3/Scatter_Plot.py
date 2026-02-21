@@ -11,7 +11,7 @@ def make_scatter(df, color_map, x, y, color, title = ""):
     """
     makes the scatter plot with different colors to different types
     """
-    fig = px.scatter(
+    fig = px.box(
         df,
         x = x,
         y = y,
