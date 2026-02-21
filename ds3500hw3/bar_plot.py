@@ -11,4 +11,4 @@ def make_bar_plot(df, color_map, x, y, color, title=''):
         title=title
         )
 
-    fig.show()
+    return fig

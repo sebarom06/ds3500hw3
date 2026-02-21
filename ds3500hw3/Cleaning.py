@@ -1,13 +1,18 @@
 import pandas as pd
 
 critical_col = ["role", "task_type", "background_noise_type"]
-ind = "focus_duration_minutes"
+#ind = "background_noise_type"
 dpd = "perceived_focus_score"
 noise_type = "background_noise_type"
 file_path = "background_noise_focus_dataset.csv"
 #Todo write column names you want to use for barchart
 categorical = "role"
 numerical = "focus_duration_minutes"
+color_map = {"Traffic Noise": "red",
+             "Silence": "green",
+             "Instrumental Music": "blue",
+             "Cafe Noise": "purple",
+             "Songs with Lyrics": "orange"}
 
 class DfCleaner:
     def __init__(self, filename):
@@ -31,7 +36,8 @@ class DfCleaner:
         roles.sort()
         return ["All Roles"] + roles
 
-    def get_subset_scatter(self, role = "role", min_noise = 0):
+
+    def get_subset_scatter(self, role = "role"):
         """
         getting subset for scatter plot
         drop down menu of roles
@@ -41,8 +47,6 @@ class DfCleaner:
 
         if role != "All Roles":
             df = df[df["role"] == role]
-
-        df = df[df["noise_volume_level"] >= min_noise]
 
         return df
 
@@ -59,13 +63,13 @@ class DfCleaner:
 
         return df
 
-    def points_plot(self, x = ind, y = dpd, color = noise_type, role = "role"):
+    def points_plot(self, x = noise_type, y = dpd, color = noise_type, role = "All ROles"):
         """
         creating dataframe suitable for plot
         """
         df = self.get_subset_scatter(role)
 
-        result = df[[x, y, color]]
+        result = df[[x, y]].copy()
         return result
 
     def bar_points(self, x = categorical, y = numerical, x_group = "role"):
@@ -81,7 +85,7 @@ class DfCleaner:
 def main():
     datadf = DfCleaner(file_path)
     datadf.clean_data()
-    print(datadf.points_plot(role = ""))
+    print(datadf.points_plot(role = "Student"))
 
 
 if __name__ == "__main__":
